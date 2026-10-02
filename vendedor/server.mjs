@@ -2,9 +2,13 @@
 // cobrando en USDC real sobre Base (mainnet) mediante el protocolo x402.
 //
 // Servicios:
-//   POST /servicio/generar-qr        $0.002  -> texto/URL a código QR (PNG)
-//   POST /servicio/markdown-a-html   $0.001  -> Markdown a HTML
-//   POST /servicio/formatear-json    $0.0005 -> valida y prolija un JSON
+//   POST /servicio/generar-qr        $0.003  -> texto/URL a código QR (PNG)
+//   POST /servicio/markdown-a-html   $0.0025 -> Markdown a HTML
+//   POST /servicio/formatear-json    $0.002  -> valida y prolija un JSON
+//
+// Los precios quedan con margen por encima del mínimo que exige el
+// facilitador (~$0.0015 por cobro en Base); por debajo de eso, rechaza
+// directamente el pago.
 //
 // No usa ninguna clave de API externa: todo corre con librerías locales
 // (qrcode, marked), así que el único costo de operar este servicio es el
@@ -32,9 +36,10 @@ if (!EVM_ADDRESS) {
 
 const RED = "eip155:8453"; // Base mainnet
 
-// Facilitador público, gratuito y sin necesidad de cuenta, listado en
-// https://docs.x402.org/dev-tools/facilitators
-const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://dexter.cash/facilitator";
+// Facilitador público, gratuito, sin necesidad de cuenta y que paga el gas
+// por nosotros. Ojo: esta es la URL real de la API (no la de marketing,
+// que es solo "dexter.cash/facilitator").
+const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://x402.dexter.cash";
 
 const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
 
@@ -58,17 +63,17 @@ app.use(
   paymentMiddleware(
     {
       "POST /servicio/generar-qr": requisitoDePago(
-        "$0.002",
+        "$0.003",
         "Genera un código QR (PNG en base64) a partir de un texto o URL",
         "application/json",
       ),
       "POST /servicio/markdown-a-html": requisitoDePago(
-        "$0.001",
+        "$0.0025",
         "Convierte texto en formato Markdown a HTML",
         "application/json",
       ),
       "POST /servicio/formatear-json": requisitoDePago(
-        "$0.0005",
+        "$0.002",
         "Valida un JSON y devuelve la versión prolija e indentada",
         "application/json",
       ),
@@ -132,9 +137,9 @@ app.get("/", (_req, res) => {
     red: RED,
     recibePagosEn: EVM_ADDRESS,
     servicios: [
-      { ruta: "POST /servicio/generar-qr", precio: "$0.002" },
-      { ruta: "POST /servicio/markdown-a-html", precio: "$0.001" },
-      { ruta: "POST /servicio/formatear-json", precio: "$0.0005" },
+      { ruta: "POST /servicio/generar-qr", precio: "$0.003" },
+      { ruta: "POST /servicio/markdown-a-html", precio: "$0.0025" },
+      { ruta: "POST /servicio/formatear-json", precio: "$0.002" },
     ],
   });
 });
